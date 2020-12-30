@@ -134,7 +134,7 @@ while True:
     elif command.upper() == "EXIT":
         cur.close()
         raise SystemExit
-# TODO create GUI for this app: Tkinter or PYsimpleGUI. But will likely need ot learn Tkinter anyways 
+# TODO create GUI for this app: Tkinter or PYsimpleGUI. But will likely need ot learn Tkinter anyways
 # TODO entering wrong password now gives cryptography.fernet.InvalidToken error (when trying to decrypt masterpass) - for useability, find a way to make this a customized error message
 # TODO add timer feature to exit program after certain amount of time
 # TODO create hash function to generate secure passwords (postpone this)
