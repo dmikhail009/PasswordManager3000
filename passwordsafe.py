@@ -153,7 +153,7 @@ class PassManager (tk.Tk):
 
         self.frames = {}
         # Create frames and stack frames for app
-        for F in (LoginPage, RegisterPage, MainPage, AddPage):#FINDPage, LISTPage, DELETEPage):
+        for F in (LoginPage, RegisterPage, MainPage, AddPage, FindPage, ListPage, DeletePage):
             frame = F(parent=container, controller=self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -259,6 +259,51 @@ class AddPage(tk.Frame):
         ent_confirmation.grid(row=5,column=1)
         btn_submit = tk.Button(self, text="Submit")
         btn_submit.grid(row=6, column=1, pady=5)
+
+# Create FindPage
+class FindPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.grid_rowconfigure([0, 1, 2], weight=1)
+        self.grid_columnconfigure([0, 1], weight=1)
+        lbl_app = tk.Label(self, text="Account/App Name:")
+        ent_app = tk.Entry(self, width=40)
+        lbl_app.grid(row=1,column=0, sticky='e')
+        ent_app.grid(row=1,column=1)
+        btn_submit = tk.Button(self, text="Submit")
+        btn_submit.grid(row=2, column=1, pady=5)
+
+# Create ListPage
+class ListPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.grid_rowconfigure([0, 1, 2], weight=1)
+        self.grid_columnconfigure([0, 1], weight=1)
+        # Creating dropdown menu for user to select Username/Email
+        variable = tk.StringVar(self)
+        variable.set("Username")
+        dropdown = tk.OptionMenu(self, variable, "Username", "Email")
+        ent_dropdown = tk.Entry(self, width=40)
+        dropdown.grid(row=1, column=0, sticky='ew')
+        ent_dropdown.grid(row=1,column=1)
+        btn_submit = tk.Button(self, text="Submit")
+        btn_submit.grid(row=2, column=1, pady=5)
+
+# Create DeletePage
+class DeletePage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.grid_rowconfigure([0, 1, 2], weight=1)
+        self.grid_columnconfigure([0, 1], weight=1)
+        lbl_app = tk.Label(self, text="Account/App Name:")
+        ent_app = tk.Entry(self, width=40)
+        lbl_app.grid(row=1,column=0, sticky='e')
+        ent_app.grid(row=1,column=1)
+        btn_delete = tk.Button(self, text="Delete")
+        btn_delete.grid(row=2, column=1, pady=5)
 
 app = PassManager()
 app.mainloop()
