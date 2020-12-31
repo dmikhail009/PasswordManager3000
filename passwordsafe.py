@@ -6,6 +6,7 @@ import hashlib
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
+import tkinter as tk
 
 # Establish connection with database
 conn = sqlite3.connect("pass_safe.db")
@@ -138,3 +139,70 @@ while True:
 # TODO entering wrong password now gives cryptography.fernet.InvalidToken error (when trying to decrypt masterpass) - for useability, find a way to make this a customized error message
 # TODO add timer feature to exit program after certain amount of time
 # TODO create hash function to generate secure passwords (postpone this)
+
+### Here starts the GUI stuff
+# Create app window
+class PassManager (tk.Tk):
+    def __init__(self, *args, **kwargs):
+        tk.Tk.__init__(self, *args, **kwargs)
+        container = tk.Frame(self)
+        self.winfo_toplevel().title("Password Manager 3000")
+        container.pack(side="top", fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1, minsize=300)
+
+        self.frames = {}
+        # Create frames and stack frames for app
+        for F in (LoginPage, RegisterPage): #MainPage, ADDPage, FINDPage, LISTPage, DELETEPage):
+            frame = F(parent=container, controller=self)
+            self.frames[F] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
+        # Show LoginPage frame first
+        self.show_frame(LoginPage)
+    # Function to raise called frame to top (show user)
+    def show_frame(self, cont):
+        frame = self.frames[cont]
+        frame.tkraise()
+
+# Create LoginPage
+class LoginPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.grid_rowconfigure([0, 1, 2], weight=1)
+        self.grid_columnconfigure([0, 1], weight=1)
+        lbl_username = tk.Label(self, text="Username:")
+        ent_username = tk.Entry(self, width=40)
+        lbl_username.grid(row=1,column=0, sticky='e')
+        ent_username.grid(row=1,column=1)
+        lbl_password = tk.Label(self, text="Password:")
+        ent_password = tk.Entry(self, width=40)
+        lbl_password.grid(row=2,column=0, sticky='e')
+        ent_password.grid(row=2,column=1)
+        btn_login = tk.Button(self, text="Login")      
+        btn_login.grid(row=3,column=1, pady=5)
+
+# Create RegisterPage
+class RegisterPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.grid_rowconfigure([0, 1, 2, 3], weight=1)
+        self.grid_columnconfigure([0, 1], weight=1)
+        lbl_username = tk.Label(self, text="Username:")
+        ent_username = tk.Entry(self, width=40)
+        lbl_username.grid(row=1,column=0, sticky='e')
+        ent_username.grid(row=1,column=1)
+        lbl_password = tk.Label(self, text="Password:")
+        ent_password = tk.Entry(self, width=40)
+        lbl_password.grid(row=2,column=0, sticky='e')
+        ent_password.grid(row=2,column=1)
+        lbl_confirmation = tk.Label(self, text="Confirmation:")
+        ent_confirmation = tk.Entry(self, width=40)
+        lbl_confirmation.grid(row=3,column=0, sticky='e')
+        ent_confirmation.grid(row=3,column=1)
+        btn_register = tk.Button(self, text="Register")
+        btn_register.grid(row=4,column=1, pady=5)
+
+app = PassManager()
+app.mainloop()
