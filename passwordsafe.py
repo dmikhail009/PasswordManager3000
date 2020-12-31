@@ -149,11 +149,11 @@ class PassManager (tk.Tk):
         self.winfo_toplevel().title("Password Manager 3000")
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1, minsize=350)
+        container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
         # Create frames and stack frames for app
-        for F in (LoginPage, RegisterPage, MainPage): #ADDPage, FINDPage, LISTPage, DELETEPage):
+        for F in (LoginPage, RegisterPage, MainPage, AddPage):#FINDPage, LISTPage, DELETEPage):
             frame = F(parent=container, controller=self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -169,7 +169,7 @@ class LoginPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.grid_rowconfigure([0, 1, 2, 3], weight=1)
+        self.grid_rowconfigure([0, 1, 2, 3, 4], weight=1)
         self.grid_columnconfigure([0, 1], weight=1)
         lbl_username = tk.Label(self, text="Username:")
         ent_username = tk.Entry(self, width=40)
@@ -181,6 +181,8 @@ class LoginPage(tk.Frame):
         ent_password.grid(row=2,column=1)
         btn_login = tk.Button(self, text="Login")      
         btn_login.grid(row=3,column=1, pady=5)
+        btn_register = tk.Button(self, text="Register")      
+        btn_register.grid(row=4,column=1, pady=5)
 
 # Create RegisterPage
 class RegisterPage(tk.Frame):
@@ -227,6 +229,36 @@ class MainPage(tk.Frame):
         lbl_delete = tk.Label(self, text="account information")
         btn_delete.grid(row=4,column=0, sticky='ew')
         lbl_delete.grid(row=4,column=1, sticky='w')
-        
+
+# Create AddPage
+class AddPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.grid_rowconfigure([0, 1, 2, 3, 4, 5, 6], weight=1)
+        self.grid_columnconfigure([0, 1], weight=1)
+        lbl_app = tk.Label(self, text="Account/App Name:")
+        ent_app = tk.Entry(self, width=40)
+        lbl_app.grid(row=1,column=0, sticky='e')
+        ent_app.grid(row=1,column=1)
+        lbl_username = tk.Label(self, text="Username:")
+        ent_username = tk.Entry(self, width=40)
+        lbl_username.grid(row=2,column=0, sticky='e')
+        ent_username.grid(row=2,column=1)
+        lbl_email = tk.Label(self, text="Email:")
+        ent_email = tk.Entry(self, width=40)
+        lbl_email.grid(row=3,column=0, sticky='e')
+        ent_email.grid(row=3,column=1)
+        lbl_password = tk.Label(self, text="Password:")
+        ent_password = tk.Entry(self, width=40)
+        lbl_password.grid(row=4,column=0, sticky='e')
+        ent_password.grid(row=4,column=1)
+        lbl_confirmation = tk.Label(self, text="Confirmation:")
+        ent_confirmation = tk.Entry(self, width=40)
+        lbl_confirmation.grid(row=5,column=0, sticky='e')
+        ent_confirmation.grid(row=5,column=1)
+        btn_submit = tk.Button(self, text="Submit")
+        btn_submit.grid(row=6, column=1, pady=5)
+
 app = PassManager()
 app.mainloop()
