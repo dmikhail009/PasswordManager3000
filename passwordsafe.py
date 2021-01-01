@@ -14,9 +14,16 @@ conn = sqlite3.connect("pass_safe.db")
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 
+#Create user and password tables in database
+cur.execute("CREATE TABLE IF NOT EXISTS users (userid numeric, email TEXT, password TEXT)")
+cur.execute("CREATE TABLE IF NOT EXISTS passwords (userid numeric, appname TEXT, username TEXT, email TEXT, password TEXT)")
 # Set encoding for program
 encoding = 'utf-8'
 
+# Initiating global user variables to access and encrypt/decrypt user passwords
+userid = None
+key = None
+f = None
 # Function to generate encryption key and password hash form password string
 # Returns key, pass_hash, f (for Fernet encryption)
 def setkey(password):
@@ -25,37 +32,37 @@ def setkey(password):
         algorithm = hashes.SHA256(),length=32,salt=bytes(salt.encode(encoding)),iterations=10000,
     )
     key = base64.urlsafe_b64encode(kdf.derive(password.encode(encoding)))
-    pass_hash = hashlib.sha256(key).hexdigest()
+    #pass_hash = hashlib.sha256(key).hexdigest()
     f = Fernet(key)
-    return key, pass_hash, f
+    return key, f
 
 
 # Check if password table exists in database
-cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='master'")
-rows = cur.fetchall()
-if len(rows) == 0:
-    # Create encryption key and password hash from user entered password
-    masterpass = input("Enter Master Password: ")
-    confirmation = input("Confirm Master Password: ")
-    # If password and confirmation do not match, quit program
-    if masterpass != confirmation:
-        print("Error: Entered passwords did not match")
-        raise SystemExit
-    # Create encryption key from master password and hash password for storage
-    key, masterpass_hash, f = setkey(masterpass)
-    # Create password table in db to store encrypted master password
-    cur.execute("CREATE TABLE master (masterpass TEXT)")
-    cur.execute("INSERT INTO master (masterpass) VALUES (:masterpass)", {"masterpass": f.encrypt(masterpass_hash.encode(encoding))})
-    conn.commit()
-else:
-    password = input("Enter Master Password: ")
-    key, pass_hash, f = setkey(password)
-    cur.execute("SELECT * FROM master")
-    row = cur.fetchone()
-    # Authenticate user by comparing entered password hash and stored hash
-    if pass_hash != f.decrypt(row['masterpass']).decode(encoding):
-        print("Error: Password entered was incorrect")
-        raise SystemExit
+# cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='master'")
+# rows = cur.fetchall()
+# if len(rows) == 0:
+#     # Create encryption key and password hash from user entered password
+#     masterpass = input("Enter Master Password: ")
+#     confirmation = input("Confirm Master Password: ")
+#     # If password and confirmation do not match, quit program
+#     if masterpass != confirmation:
+#         print("Error: Entered passwords did not match")
+#         raise SystemExit
+#     # Create encryption key from master password and hash password for storage
+#     key, masterpass_hash, f = setkey(masterpass)
+#     # Create password table in db to store encrypted master password
+#     cur.execute("CREATE TABLE master (masterpass TEXT)")
+#     cur.execute("INSERT INTO master (masterpass) VALUES (:masterpass)", {"masterpass": f.encrypt(masterpass_hash.encode(encoding))})
+#     conn.commit()
+# else:
+#     password = input("Enter Master Password: ")
+#     key, pass_hash, f = setkey(password)
+#     cur.execute("SELECT * FROM master")
+#     row = cur.fetchone()
+#     # Authenticate user by comparing entered password hash and stored hash
+#     if pass_hash != f.decrypt(row['masterpass']).decode(encoding):
+#         print("Error: Password entered was incorrect")
+#         raise SystemExit
 
 # Creates table for first time
 cur.execute("CREATE TABLE IF NOT EXISTS passwords (password TEXT, username TEXT, email TEXT, appname TEXT)")
@@ -132,6 +139,7 @@ elif command.upper() == "EXIT":
     cur.close()
     raise SystemExit
 # TODO entering wrong password now gives cryptography.fernet.InvalidToken error (when trying to decrypt masterpass) - for useability, find a way to make this a customized error message
+# 
 
 ### Here starts the GUI stuff
 # Create app window
@@ -176,7 +184,7 @@ class LoginPage(tk.Frame):
         #btn_login = tk.Button(self, text="Login", command=login(ent_email.get(), ent_password.get(), controller))
         btn_login = tk.Button(self, text="Login", command=lambda: self.login(ent_email, ent_password))
         btn_login.grid(row=3,column=1, pady=5)
-        btn_register = tk.Button(self, text="Don't have an account?\nRegister")      
+        btn_register = tk.Button(self, text="Don't have an account?\nRegister", command=lambda: controller.show_frame(RegisterPage))      
         btn_register.grid(row=4,column=1, pady=5)
     # Login Function
     def login(self, ent_email, ent_password):
@@ -185,8 +193,15 @@ class LoginPage(tk.Frame):
         print(f"{email} {password}")
         if email == '' or password == '':
             messagebox.showerror("Login Error", "Please enter a valid email and password")
-        
-        self.controller.show_frame(RegisterPage)
+        if len(cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchall()):
+            if hashlib.sha256(password).hexdigest() == cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchone()["password"]:
+                userid = cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchone()["userid"]
+                key, f = setkey(password)
+            else:
+                messagebox.showerror("Login Error", "Incorrect password entered")
+        else:
+            messagebox.showerror("Login Error", "No account could be found for this email")
+        #self.controller.show_frame(MainPage)
 
 # Create RegisterPage
 class RegisterPage(tk.Frame):
