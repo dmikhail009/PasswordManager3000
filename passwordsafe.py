@@ -172,7 +172,6 @@ class LoginPage(tk.Frame):
         self.controller = controller
         self.grid_rowconfigure([0, 1, 2, 3, 4], weight=1)
         self.grid_columnconfigure([0, 1], weight=1)                
-        
         lbl_email = tk.Label(self, text="Email:")
         ent_email = tk.Entry(self, width=40)
         lbl_email.grid(row=1,column=0, sticky='e')
@@ -181,27 +180,30 @@ class LoginPage(tk.Frame):
         ent_password = tk.Entry(self, width=40)
         lbl_password.grid(row=2,column=0, sticky='e')
         ent_password.grid(row=2,column=1)
-        #btn_login = tk.Button(self, text="Login", command=login(ent_email.get(), ent_password.get(), controller))
         btn_login = tk.Button(self, text="Login", command=lambda: self.login(ent_email, ent_password))
         btn_login.grid(row=3,column=1, pady=5)
         btn_register = tk.Button(self, text="Don't have an account?\nRegister", command=lambda: controller.show_frame(RegisterPage))      
         btn_register.grid(row=4,column=1, pady=5)
     # Login Function
     def login(self, ent_email, ent_password):
+        global userid
+        global key
+        global f
         email = ent_email.get()
         password = ent_password.get()
-        print(f"{email} {password}")
-        if email == '' or password == '':
-            messagebox.showerror("Login Error", "Please enter a valid email and password")
+        # Checks if email has an accout in users
         if len(cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchall()):
-            if hashlib.sha256(password).hexdigest() == cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchone()["password"]:
+            # Checks if hashed password matches stored value in users
+            if hashlib.sha256(password.encode(encoding)).hexdigest() == cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchone()["password"]:
+                # Sets userid and encryption key, f from password
                 userid = cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchone()["userid"]
                 key, f = setkey(password)
+                self.controller.show_frame(MainPage)
             else:
                 messagebox.showerror("Login Error", "Incorrect password entered")
         else:
             messagebox.showerror("Login Error", "No account could be found for this email")
-        #self.controller.show_frame(MainPage)
+        
 
 # Create RegisterPage
 class RegisterPage(tk.Frame):
@@ -222,8 +224,33 @@ class RegisterPage(tk.Frame):
         ent_confirmation = tk.Entry(self, width=40)
         lbl_confirmation.grid(row=3,column=0, sticky='e')
         ent_confirmation.grid(row=3,column=1)
-        btn_register = tk.Button(self, text="Register")
+        btn_register = tk.Button(self, text="Register", command=lambda: self.register(ent_email, ent_password, ent_confirmation))
         btn_register.grid(row=4,column=1, pady=5)
+    # Register Function
+    def register(self, ent_email, ent_password, ent_confirmation):
+        global userid
+        global key
+        global f
+        email = ent_email.get()
+        password = ent_password.get()
+        confirmation = ent_confirmation.get()
+        # Checks entered password and confirmation match
+        if password != confirmation:
+            messagebox.showerror("Registration Error", "Entered passwords do not match")
+        # Checks email does not have an accout already in users
+        elif len(cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchall()):
+            messagebox.showerror("Registration Error", "This email is already registered with an account")
+        else:
+            # If first ever account, assigns userid as 0
+            if len(cur.execute("SELECT * from users WHERE email = :email", {"email": email}).fetchall()) == 0:
+                userid = 0
+            # If not first account, assigns next userid numerically
+            else:
+                userid = cur.execute("SELECT MAX(userid) from users").fetchall()["MAX(userid)"] + 1
+            key, f = setkey(password)
+            cur.execute("INSERT INTO users (userid, email, password) VALUES (:userid, :email, :password)", {"userid": userid, "email": email, "password": hashlib.sha256(password.encode(encoding)).hexdigest()})
+            conn.commit()
+            self.controller.show_frame(LoginPage)
 
 # Create MainPage
 class MainPage(tk.Frame):
