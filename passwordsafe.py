@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
 import tkinter as tk
+from tkinter import messagebox
 
 # Establish connection with database
 conn = sqlite3.connect("pass_safe.db")
@@ -27,6 +28,7 @@ def setkey(password):
     pass_hash = hashlib.sha256(key).hexdigest()
     f = Fernet(key)
     return key, pass_hash, f
+
 
 # Check if password table exists in database
 cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='master'")
@@ -60,85 +62,76 @@ cur.execute("CREATE TABLE IF NOT EXISTS passwords (password TEXT, username TEXT,
 wait = 1.5
 
 # Queries user for request
-while True:
-    command = None
-    valid = ["ADD", "FIND", "LIST", "DELETE", "EXIT"]
-    while True:
-        command = input("Enter one of the following options:\nADD a new account\nCREATE a new password (\nFIND a password for site/app\nLIST apps/sites in database tied to an email\nDELETE password from database\nEXIT\n\n")
-        if command.upper() in valid:
-            break
-        else:
-            print("Please input a command from the listed options")
+#while True:
+command = "CAT"
 
-    # ADD pasword for new account
-    if command.upper() == "ADD":
-        appname = input("Enter account site/app name: ").lower()
-        
-        # Check for existing account
-        cur.execute("SELECT * FROM passwords WHERE appname = :appname", {"appname": appname})
-        rows = cur.fetchall()
-        if len(rows) != 0:
-            print(f"An account already exists in the database for {appname}")
-            time.sleep(wait)
-        # If no account already exist, continue
-        else:
-            username = input("Enter account username: ")
-            email = input("Enter account email: ")
-            password = input("Enter account password: ")
-            cur.execute("INSERT INTO passwords (password, username, email, appname) VALUES (:password, :username, :email, :appname)", {"password": f.encrypt(password.encode(encoding)), "username": username, "email": email, "appname": appname})
-            conn.commit()
-            print(f"Account information has been entered for {appname}")
-            time.sleep(wait)
 
-    # FIND password for existing account
-    elif command.upper() == "FIND":
-        appname = input("Enter the app/site name of the account: ")
-        cur.execute("SELECT * FROM passwords WHERE appname = :appname", {"appname": appname})
-        rows = cur.fetchall()
-        if len(rows) == 0:
-            print(f"No account exists in the database for {appname}")
-            time.sleep(wait)
-        else:
-            cur.execute("SELECT password FROM passwords WHERE appname = :appname", {"appname": appname})
-            rows = cur.fetchone()
-            print(f"password: {f.decrypt(rows['password']).decode(encoding)}")
-            time.sleep(wait)
+# ADD pasword for new account
+if command.upper() == "ADD":
+    appname = input("Enter account site/app name: ").lower()
+    
+    # Check for existing account
+    cur.execute("SELECT * FROM passwords WHERE appname = :appname", {"appname": appname})
+    rows = cur.fetchall()
+    if len(rows) != 0:
+        print(f"An account already exists in the database for {appname}")
+        time.sleep(wait)
+    # If no account already exist, continue
+    else:
+        username = input("Enter account username: ")
+        email = input("Enter account email: ")
+        password = input("Enter account password: ")
+        cur.execute("INSERT INTO passwords (password, username, email, appname) VALUES (:password, :username, :email, :appname)", {"password": f.encrypt(password.encode(encoding)), "username": username, "email": email, "appname": appname})
+        conn.commit()
+        print(f"Account information has been entered for {appname}")
+        time.sleep(wait)
 
-    # LIST accounts under provided email
-    elif command.upper() == "LIST":
-        email = input("Enter the email you'd like to check accounts for: ")
-        cur.execute("SELECT * FROM passwords WHERE email = :email", {"email": email})
-        rows = cur.fetchall()
-        if len(rows) == 0:
-            print(f"No account exists in the database under {email}")
-            time.sleep(wait)
-        else:
-            for row in rows:
-                print(f"account: {row['appname']}, username: {row['username']}")
-            time.sleep(wait)
+# FIND password for existing account
+elif command.upper() == "FIND":
+    appname = input("Enter the app/site name of the account: ")
+    cur.execute("SELECT * FROM passwords WHERE appname = :appname", {"appname": appname})
+    rows = cur.fetchall()
+    if len(rows) == 0:
+        print(f"No account exists in the database for {appname}")
+        time.sleep(wait)
+    else:
+        cur.execute("SELECT password FROM passwords WHERE appname = :appname", {"appname": appname})
+        rows = cur.fetchone()
+        print(f"password: {f.decrypt(rows['password']).decode(encoding)}")
+        time.sleep(wait)
 
-    # DELETE account information
-    elif command.upper() == "DELETE":
-        appname = input("Enter the app/site name of the account: ")
-        cur.execute("SELECT * FROM passwords WHERE appname = :appname", {"appname": appname})
-        rows = cur.fetchall()
-        if len(rows) == 0:
-            print(f"No account exists in the database for {appname}")
-            time.sleep(wait)
-        else:
-            cur.execute("DELETE FROM passwords WHERE appname = :appname", {"appname": appname})
-            conn.commit()
-            print(f"Information for {appname} account has been deleted")
-            time.sleep(wait)
+# LIST accounts under provided email
+elif command.upper() == "LIST":
+    email = input("Enter the email you'd like to check accounts for: ")
+    cur.execute("SELECT * FROM passwords WHERE email = :email", {"email": email})
+    rows = cur.fetchall()
+    if len(rows) == 0:
+        print(f"No account exists in the database under {email}")
+        time.sleep(wait)
+    else:
+        for row in rows:
+            print(f"account: {row['appname']}, username: {row['username']}")
+        time.sleep(wait)
 
-    # EXIT
-    elif command.upper() == "EXIT":
-        cur.close()
-        raise SystemExit
-# TODO create GUI for this app: Tkinter or PYsimpleGUI. But will likely need ot learn Tkinter anyways
+# DELETE account information
+elif command.upper() == "DELETE":
+    appname = input("Enter the app/site name of the account: ")
+    cur.execute("SELECT * FROM passwords WHERE appname = :appname", {"appname": appname})
+    rows = cur.fetchall()
+    if len(rows) == 0:
+        print(f"No account exists in the database for {appname}")
+        time.sleep(wait)
+    else:
+        cur.execute("DELETE FROM passwords WHERE appname = :appname", {"appname": appname})
+        conn.commit()
+        print(f"Information for {appname} account has been deleted")
+        time.sleep(wait)
+
+# EXIT
+elif command.upper() == "EXIT":
+    cur.close()
+    raise SystemExit
 # TODO entering wrong password now gives cryptography.fernet.InvalidToken error (when trying to decrypt masterpass) - for useability, find a way to make this a customized error message
-# TODO add timer feature to exit program after certain amount of time
-# TODO create hash function to generate secure passwords (postpone this)
 
 ### Here starts the GUI stuff
 # Create app window
@@ -170,19 +163,30 @@ class LoginPage(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.grid_rowconfigure([0, 1, 2, 3, 4], weight=1)
-        self.grid_columnconfigure([0, 1], weight=1)
-        lbl_username = tk.Label(self, text="Username:")
-        ent_username = tk.Entry(self, width=40)
-        lbl_username.grid(row=1,column=0, sticky='e')
-        ent_username.grid(row=1,column=1)
+        self.grid_columnconfigure([0, 1], weight=1)                
+        
+        lbl_email = tk.Label(self, text="Email:")
+        ent_email = tk.Entry(self, width=40)
+        lbl_email.grid(row=1,column=0, sticky='e')
+        ent_email.grid(row=1,column=1)
         lbl_password = tk.Label(self, text="Password:")
         ent_password = tk.Entry(self, width=40)
         lbl_password.grid(row=2,column=0, sticky='e')
         ent_password.grid(row=2,column=1)
-        btn_login = tk.Button(self, text="Login")      
+        #btn_login = tk.Button(self, text="Login", command=login(ent_email.get(), ent_password.get(), controller))
+        btn_login = tk.Button(self, text="Login", command=lambda: self.login(ent_email, ent_password))
         btn_login.grid(row=3,column=1, pady=5)
-        btn_register = tk.Button(self, text="Register")      
+        btn_register = tk.Button(self, text="Don't have an account?\nRegister")      
         btn_register.grid(row=4,column=1, pady=5)
+    # Login Function
+    def login(self, ent_email, ent_password):
+        email = ent_email.get()
+        password = ent_password.get()
+        print(f"{email} {password}")
+        if email == '' or password == '':
+            messagebox.showerror("Login Error", "Please enter a valid email and password")
+        
+        self.controller.show_frame(RegisterPage)
 
 # Create RegisterPage
 class RegisterPage(tk.Frame):
@@ -191,10 +195,10 @@ class RegisterPage(tk.Frame):
         self.controller = controller
         self.grid_rowconfigure([0, 1, 2, 3], weight=1)
         self.grid_columnconfigure([0, 1], weight=1)
-        lbl_username = tk.Label(self, text="Username:")
-        ent_username = tk.Entry(self, width=40)
-        lbl_username.grid(row=1,column=0, sticky='e')
-        ent_username.grid(row=1,column=1)
+        lbl_email = tk.Label(self, text="Email:")
+        ent_email = tk.Entry(self, width=40)
+        lbl_email.grid(row=1,column=0, sticky='e')
+        ent_email.grid(row=1,column=1)
         lbl_password = tk.Label(self, text="Password:")
         ent_password = tk.Entry(self, width=40)
         lbl_password.grid(row=2,column=0, sticky='e')
