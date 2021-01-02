@@ -15,8 +15,8 @@ conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 
 #Create user and password tables in database
-cur.execute("CREATE TABLE IF NOT EXISTS users (userid numeric, email TEXT, password TEXT)")
-cur.execute("CREATE TABLE IF NOT EXISTS passwords (userid numeric, appname TEXT, username TEXT, email TEXT, password TEXT)")
+cur.execute("CREATE TABLE IF NOT EXISTS users (userid NUMERIC, email TEXT, password TEXT)")
+cur.execute("CREATE TABLE IF NOT EXISTS passwords (userid NUMERIC, app TEXT, username TEXT, email TEXT, password TEXT)")
 # Set encoding for program
 encoding = 'utf-8'
 
@@ -154,7 +154,7 @@ class PassManager (tk.Tk):
 
         self.frames = {}
         # Create frames and stack frames for app
-        for F in (LoginPage, RegisterPage, MainPage, AddPage, FindPage, ListPage, DeletePage):
+        for F in (LoginPage, RegisterPage, MainPage, AddPage, FindPage, DeletePage):
             frame = F(parent=container, controller=self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -189,7 +189,7 @@ class LoginPage(tk.Frame):
         global userid
         global key
         global f
-        email = ent_email.get()
+        email = ent_email.get().lower()
         password = ent_password.get()
         # Checks if email has an accout in users
         if len(cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchall()):
@@ -199,11 +199,12 @@ class LoginPage(tk.Frame):
                 userid = cur.execute("SELECT * FROM users WHERE email = :email", {"email": email}).fetchone()["userid"]
                 key, f = setkey(password)
                 self.controller.show_frame(MainPage)
+                ent_email.delete(0,"end")
+                ent_password.delete(0,"end")
             else:
                 messagebox.showerror("Login Error", "Incorrect password entered")
         else:
-            messagebox.showerror("Login Error", "No account could be found for this email")
-        
+            messagebox.showerror("Login Error", "No account could be found for this email")      
 
 # Create RegisterPage
 class RegisterPage(tk.Frame):
@@ -231,7 +232,7 @@ class RegisterPage(tk.Frame):
         global userid
         global key
         global f
-        email = ent_email.get()
+        email = ent_email.get().lower()
         password = ent_password.get()
         confirmation = ent_confirmation.get()
         # Checks entered password and confirmation match
@@ -244,13 +245,17 @@ class RegisterPage(tk.Frame):
             # If first ever account, assigns userid as 0
             if len(cur.execute("SELECT * from users WHERE email = :email", {"email": email}).fetchall()) == 0:
                 userid = 0
-            # If not first account, assigns next userid numerically
+            # If not first account, assigns next userid numerically and adds user to users table
             else:
                 userid = cur.execute("SELECT MAX(userid) from users").fetchall()["MAX(userid)"] + 1
             key, f = setkey(password)
             cur.execute("INSERT INTO users (userid, email, password) VALUES (:userid, :email, :password)", {"userid": userid, "email": email, "password": hashlib.sha256(password.encode(encoding)).hexdigest()})
             conn.commit()
+            messagebox.showinfo("Registration Complete", "Welcome! "+email+" is now registered.\nTo begin using Software Manager 3000, please Login")
             self.controller.show_frame(LoginPage)
+            ent_email.delete(0,"end")
+            ent_password.delete(0,"end")
+            ent_confirmation.delete(0,"end")
 
 # Create MainPage
 class MainPage(tk.Frame):
@@ -259,22 +264,47 @@ class MainPage(tk.Frame):
         self.controller = controller
         self.grid_rowconfigure([0, 1, 2, 3, 4, 5], weight=1)
         self.grid_columnconfigure([0, 1], weight=1)
-        btn_add = tk.Button(self, text="ADD")
+        btn_add = tk.Button(self, text="ADD", command=lambda: controller.show_frame(AddPage))
         lbl_add = tk.Label(self, text="a new account")
         btn_add.grid(row=1,column=0, sticky='ew')
         lbl_add.grid(row=1,column=1, sticky='w')
-        btn_find = tk.Button(self, text="FIND")
+        btn_find = tk.Button(self, text="FIND", command=lambda: controller.show_frame(FindPage))
         lbl_find = tk.Label(self, text="a password for existing account")
         btn_find.grid(row=2,column=0, sticky='ew')
         lbl_find.grid(row=2,column=1, sticky='w')
-        btn_list = tk.Button(self, text="LIST")
+        btn_list = tk.Button(self, text="LIST", command=lambda: self.listf())
         lbl_list = tk.Label(self, text="accounts registered to a username/email")
         btn_list.grid(row=3,column=0, sticky='ew')
         lbl_list.grid(row=3,column=1, sticky='w')
-        btn_delete = tk.Button(self, text="DELETE")
+        btn_delete = tk.Button(self, text="DELETE", command=lambda: controller.show_frame(DeletePage))
         lbl_delete = tk.Label(self, text="account information")
         btn_delete.grid(row=4,column=0, sticky='ew')
         lbl_delete.grid(row=4,column=1, sticky='w')
+        btn_logout = tk.Button(self, text="Logout", command=lambda: self.logout())
+        btn_logout.grid(row=5,column=1, pady=5)
+    # Logout Function
+    def logout(self):
+        global userid
+        global key
+        global f
+        # Clear user information and return to LoginPage
+        userid = None
+        key = None
+        f = None
+        messagebox.showinfo("Logged Out", "You have been successfully logged out")
+        self.controller.show_frame(LoginPage)
+    # List Function
+    def listf(self):
+        global userid
+        rows = cur.execute("SELECT * FROM passwords where userid = :userid", {"userid": userid}).fetchall()
+        if len(rows) == 0:
+            messagebox.showerror("Search Error", "No accounts under found")
+        else:
+            apps = str()
+            for row in rows:
+                app = row["app"]
+                apps = apps+"\n"+app
+            messagebox.showinfo("Search Results", "The following account were found:\n"+apps)
 
 # Create AddPage
 class AddPage(tk.Frame):
@@ -303,9 +333,37 @@ class AddPage(tk.Frame):
         ent_confirmation = tk.Entry(self, width=40)
         lbl_confirmation.grid(row=5,column=0, sticky='e')
         ent_confirmation.grid(row=5,column=1)
-        btn_submit = tk.Button(self, text="Submit")
+        btn_submit = tk.Button(self, text="Submit", command=lambda: self.add(ent_app, ent_username, ent_email, ent_password, ent_confirmation))
         btn_submit.grid(row=6, column=1, pady=5)
-
+        btn_main = tk.Button(self, text="Main Page", command=lambda: controller.show_frame(MainPage))
+        btn_main.grid(row=6, column=0, pady=5)
+    # Add Function
+    def add(self, ent_app, ent_username, ent_email, ent_password, ent_confirmation):
+        global userid
+        global key
+        global f
+        app = ent_app.get().lower()
+        username = ent_username.get().lower()
+        email = ent_email.get().lower()
+        password = ent_password.get()
+        confirmation = ent_confirmation.get()
+        # Checks entered password and confirmation match
+        if password != confirmation:
+            messagebox.showerror("Submission Error", "Entered passwords do not match")
+        # Checks that no account exists for entered app
+        elif len(cur.execute("SELECT * FROM passwords WHERE userid = :userid AND app = :app", {"userid": userid, "app": app}).fetchall()):
+            messagebox.showerror("Submission Error", "An account for "+app+" already exists")
+        # If no account info exists, insert provided account info
+        else:
+            cur.execute("INSERT INTO passwords (userid, app, username, email, password) VALUES (:userid, :app, :username, :email, :password)", {"userid": userid, "app": app, "username": username, "email": email, "password": f.encrypt(password.encode(encoding))})
+            conn.commit()
+            messagebox.showinfo("Submission Complete", "Account info for "+app+" under "+email+" has been entered")
+            self.controller.show_frame(MainPage)
+            ent_app.delete(0,"end")
+            ent_username.delete(0,"end")
+            ent_email.delete(0,"end")
+            ent_password.delete(0,"end")
+            ent_confirmation.delete(0,"end")
 # Create FindPage
 class FindPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -317,25 +375,26 @@ class FindPage(tk.Frame):
         ent_app = tk.Entry(self, width=40)
         lbl_app.grid(row=1,column=0, sticky='e')
         ent_app.grid(row=1,column=1)
-        btn_submit = tk.Button(self, text="Submit")
+        btn_submit = tk.Button(self, text="Submit", command=lambda: self.find(ent_app))
         btn_submit.grid(row=2, column=1, pady=5)
-
-# Create ListPage
-class ListPage(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        self.controller = controller
-        self.grid_rowconfigure([0, 1, 2], weight=1)
-        self.grid_columnconfigure([0, 1], weight=1)
-        # Creating dropdown menu for user to select Username/Email
-        variable = tk.StringVar(self)
-        variable.set("Username")
-        dropdown = tk.OptionMenu(self, variable, "Username", "Email")
-        ent_dropdown = tk.Entry(self, width=40)
-        dropdown.grid(row=1, column=0, sticky='ew')
-        ent_dropdown.grid(row=1,column=1)
-        btn_submit = tk.Button(self, text="Submit")
-        btn_submit.grid(row=2, column=1, pady=5)
+        btn_main = tk.Button(self, text="Main Page", command=lambda: controller.show_frame(MainPage))
+        btn_main.grid(row=6, column=0, pady=5)
+    # Find Function
+    def find(self, ent_app):
+        global userid
+        global key
+        global f
+        app = ent_app.get().lower()
+        row = cur.execute("SELECT * FROM passwords WHERE userid = :userid AND app = :app", {"userid": userid, "app": app}).fetchone()
+        if len(row) == 0:
+            messagebox.showerror("Search Error", "No account for "+app+" found")
+        else:
+            email = row["email"]
+            username = row["username"]
+            password = f.decrypt(row["password"]).decode(encoding)
+            messagebox.showinfo("Search Results", "Account info for "+app+":\nEmail: "+email+"\nUsername: "+username+"\nPassword: "+password)
+            self.controller.show_frame(MainPage)
+            ent_app.delete(0,"end")
 
 # Create DeletePage
 class DeletePage(tk.Frame):
@@ -348,8 +407,22 @@ class DeletePage(tk.Frame):
         ent_app = tk.Entry(self, width=40)
         lbl_app.grid(row=1,column=0, sticky='e')
         ent_app.grid(row=1,column=1)
-        btn_delete = tk.Button(self, text="Delete")
+        btn_delete = tk.Button(self, text="Delete", command=lambda: self.delete(ent_app))
         btn_delete.grid(row=2, column=1, pady=5)
+        btn_main = tk.Button(self, text="Main Page", command=lambda: controller.show_frame(MainPage))
+        btn_main.grid(row=6, column=0, pady=5)
+    # Delete Function
+    def delete(self, ent_app):
+        global userid
+        app = ent_app.get().lower()
+        if len(cur.execute("SELECT * FROM passwords WHERE userid = :userid AND app = :app", {"userid": userid, "app": app}).fetchone()) == 0:
+            messagebox.showerror("Search Error", "No account for "+app+" found")
+        else:
+            cur.execute("DELETE FROM passwords WHERE userid = :userid AND app = :app", {"userid": userid, "app": app})
+            conn.commit()
+            messagebox.showinfo("Delete Confirmation", "Account info for "+app+" was successfully deleted")
+            self.controller.show_frame(MainPage)
+            ent_app.delete(0,"end")
 
 app = PassManager()
 app.mainloop()
