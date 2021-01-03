@@ -1,2 +1,7 @@
 PasswordManager3000.db
 layout.txt
+__pycache__/
+build/
+dist/
+PasswordManager3000.spec
+.gitignore.txt
