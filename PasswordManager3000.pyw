@@ -255,7 +255,7 @@ class AddPage(tk.Frame):
         global key
         global f
         app = ent_app.get().lower()
-        username = ent_username.get().lower()
+        username = ent_username.get()
         email = ent_email.get().lower()
         password = ent_password.get()
         confirmation = ent_confirmation.get()
