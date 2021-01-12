@@ -3,5 +3,6 @@ layout.txt
 __pycache__/
 build/
 dist/
+demo/
 PasswordManager3000.spec
-.gitignore.txt
+.gitignore
